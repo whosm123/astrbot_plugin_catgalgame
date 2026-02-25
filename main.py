@@ -1,13 +1,14 @@
 from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult
 from astrbot.api.star import Context, Star, register
 from astrbot.api import logger
+from astrbot.core.provider.entities import ProviderRequest
 
 
 @register("astrbot_plugin_catgalgame", "Makari", "一个基于 AstrBot 的猫娘galgame插件", "0.0.1")
 class MyPlugin(Star):
     admins = ["2642677199"]
-    players = ["3248876632", "2642677199"]
-    love_levels = {"2642677199": 5, "3248876632": 0}
+    players = []
+    love_levels = {}
 
     def __init__(self, context: Context):
         super().__init__(context)
@@ -259,3 +260,16 @@ class MyPlugin(Star):
             str(old_level),
         )
         yield event.plain_result(f"[system] 退出游戏成功：玩家 {user_id} 已退出游戏。")
+
+
+
+    @filter.on_llm_request()
+    async def inject_lovelevel(self,event:AstrMessageEvent,req: ProviderRequest):
+        """将玩家的好感度注入到prompt中"""
+        sender_id = event.get_sender_id()
+        if sender_id not in self.love_levels:
+            yield event.plain_result(f"[system] 玩家 {sender_id} 未加入游戏中，无法与零奈对话。可以发送/join来加入游戏。")
+            event.stop_event()
+        lovelevel = self.love_levels[sender_id]
+        prompt_add = f"\n【注意】当前和你对话的人的好感度为：{lovelevel}\n"
+        req.system_prompt += prompt_add
