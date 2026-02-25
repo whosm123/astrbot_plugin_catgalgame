@@ -1,6 +1,6 @@
-# astrbot-plugin-helloworld
+# astrbot-plugin-catgalgame
 
-AstrBot 插件模板 / A template plugin for AstrBot plugin feature
+开发中
 
 > [!NOTE]
 > This repo is just a template of [AstrBot](https://github.com/AstrBotDevs/AstrBot) Plugin.
