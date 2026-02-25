@@ -23,7 +23,7 @@ class MyPlugin(Star):
         message_str = event.message_str # 用户发的纯文本消息字符串
         message_chain = event.get_messages() # 用户所发的消息的消息链 # from astrbot.api.message_components import *
         logger.info("message_chain: %s",message_chain)
-        yield event.plain_result(f"Hello, {user_name}, 你发了 {message_str}!") # 发送一条纯文本消息
+        yield event.plain_result(f"[system] Hello, {user_name}, 你发了 {message_str}!") # 发送一条纯文本消息
 
     @filter.command_group("admin")
     def admin(self):
@@ -41,7 +41,8 @@ class MyPlugin(Star):
         sender_id = event.get_sender_id()
         if sender_id not in self.admins:
             logger.warn("QQ号 %s 访问管理员接口 love_level.set_love_level 失败：权限不足",sender_id)
-            yield event.plain_result(f"您（{sender_id}）不是管理员，无权限设置好感度。")
+            yield event.plain_result(f"[system] 您（{sender_id}）不是管理员，无权限设置好感度。")
+            return
 
         if user_id in self.love_levels:
             logger.info("正在将 %s 的好感度设置为 %d",user_id,love_level)
@@ -51,7 +52,85 @@ class MyPlugin(Star):
             else:
                 self.love_levels[user_id] = love_level
                 logger.info("管理员 %s 设置好感度成功：%s 的好感度被设置为：%d",sender_id,user_id,love_level)
-                yield event.plain_result(f"管理员 {sender_id} 设置好感度成功：{user_id} 的好感度被设置为 : {love_level}")
+                yield event.plain_result(f"[system] 管理员 {sender_id} 设置好感度成功：{user_id} 的好感度被设置为 : {love_level}")
+
+    @love_level.command("reset")
+    async def reset_love_level(self, event: AstrMessageEvent, user_id: str):
+        """重置玩家的好感度（重置为 0）"""
+        sender_id = event.get_sender_id()
+
+        if sender_id not in self.admins:
+            logger.warn("QQ号 %s 访问管理员接口 love_level.reset_love_level 失败：权限不足", sender_id)
+            yield event.plain_result(f"[system] 您（{sender_id}）不是管理员，无权限重置好感度。")
+            return
+
+        if user_id not in self.love_levels:
+            logger.error("管理员 %s 重置好感度失败：用户 %s 不在玩家名单/好感度表中", sender_id, user_id)
+            yield event.plain_result(f"[system] 重置失败：用户 {user_id} 不在玩家名单中。")
+            return
+
+        old_level = self.love_levels[user_id]
+        self.love_levels[user_id] = 0
+        logger.info("管理员 %s 重置好感度成功：%s 的好感度 %d -> 0", sender_id, user_id, old_level)
+        yield event.plain_result(f"[system] 管理员 {sender_id} 重置成功：玩家 {user_id} 的好感度已重置为 0。")
+
+    @admin.group("player")
+    def admin_player(self):
+        """管理员：玩家管理"""
+        pass
+
+    @admin_player.command("add")
+    async def admin_add_player(self, event: AstrMessageEvent, user_id: str):
+        """管理员新增玩家（加入玩家名单并初始化好感度为 0）"""
+        sender_id = event.get_sender_id()
+
+        if sender_id not in self.admins:
+            logger.warn("QQ号 %s 访问管理员接口 admin.player.add 失败：权限不足", sender_id)
+            yield event.plain_result(f"[system] 您（{sender_id}）不是管理员，无权限新增玩家。")
+            return
+
+        if user_id in self.players:
+            logger.error("管理员 %s 新增玩家失败：%s 已在玩家名单中", sender_id, user_id)
+            yield event.plain_result(f"[system] 新增失败：{user_id} 已在玩家名单中。")
+            return
+
+        self.players.append(user_id)
+        # 如果 love_levels 里已经有残留值，这里统一覆盖为 0（更符合“新增玩家”初始化）
+        self.love_levels[user_id] = 0
+        logger.info("管理员 %s 新增玩家成功：%s 已加入玩家名单，好感度初始化为 0", sender_id, user_id)
+        yield event.plain_result(f"[system] 管理员 {sender_id} 新增玩家成功：{user_id} 已加入游戏，好感度初始化为 0。")
+
+    @admin_player.command("kick")
+    async def admin_kick_player(self, event: AstrMessageEvent, user_id: str):
+        """管理员踢出玩家（从玩家名单移除，并删除其好感度记录）"""
+        sender_id = event.get_sender_id()
+
+        if sender_id not in self.admins:
+            logger.warn("QQ号 %s 访问管理员接口 admin.player.kick 失败：权限不足", sender_id)
+            yield event.plain_result(f"[system] 您（{sender_id}）不是管理员，无权限踢出玩家。")
+            return
+
+        existed_in_players = user_id in self.players
+        existed_in_love = user_id in self.love_levels
+
+        if not existed_in_players and not existed_in_love:
+            logger.error("管理员 %s 踢出玩家失败：%s 不在玩家名单且无好感度记录", sender_id, user_id)
+            yield event.plain_result(f"[system] 踢出失败：{user_id} 不在玩家名单中。")
+            return
+
+        if existed_in_players:
+            self.players.remove(user_id)
+
+        old_level = None
+        if existed_in_love:
+            old_level = self.love_levels[user_id]
+            del self.love_levels[user_id]
+
+        logger.info(
+            "管理员 %s 踢出玩家成功：%s removed_from_players=%s removed_love=%s old_love=%s",
+            sender_id, user_id, existed_in_players, existed_in_love, str(old_level)
+        )
+        yield event.plain_result(f"[system] 管理员 {sender_id} 踢出成功：玩家 {user_id} 已被移出游戏。")
 
     @filter.command("search_love_level")
     async def search_love_level(self, event: AstrMessageEvent, user_id: str = "N",):
@@ -61,11 +140,14 @@ class MyPlugin(Star):
 
         if user_id not in self.love_levels:
             logger.error("要查询的用户 %s 不在玩家名单中",user_id)
-            yield event.plain_result(f"错误：要查询的用户 {user_id} 不在玩家名单中。")
+            yield event.plain_result(f"[system] 错误：要查询的用户 {user_id} 不在玩家名单中。")
 
         result = self.love_levels[user_id]
         logger.info("查询了 %s 的好感度为 %d",user_id,result)
-        yield event.plain_result(f"查询成功：玩家 {user_id} 的好感度为 {result}")
+        yield event.plain_result(f"[system] 查询成功：玩家 {user_id} 的好感度为 {result}")
+
+
+
 
     @filter.command("join")
     async def join_game(self,event: AstrMessageEvent):
@@ -73,12 +155,12 @@ class MyPlugin(Star):
         user_id = event.get_sender_id()
         if user_id in self.players:
             logger.error("%s 加入失败：已在玩家名单中", user_id)
-            yield event.plain_result(f"加入失败：{user_id} 已在玩家名单中。")
+            yield event.plain_result(f"[system] 加入失败：{user_id} 已在玩家名单中。")
         else:
             self.players.append(user_id)
             self.love_levels[user_id] = 0
             logger.info("玩家 %s 成功加入游戏。",user_id)
-            yield event.plain_result(f"加入游戏成功：玩家 {user_id} 的初始好感度设置为 ：0。\r\n来和零奈聊天，触发事件增加好感度吧！")
+            yield event.plain_result(f"[system] 加入游戏成功：玩家 {user_id} 的初始好感度设置为 ：0。\r\n来和零奈聊天，触发事件增加好感度吧！")
 
 
 
