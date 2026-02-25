@@ -51,7 +51,7 @@ class MyPlugin(Star):
             else:
                 self.love_levels[user_id] = love_level
                 logger.info("管理员 %s 设置好感度成功：%s 的好感度被设置为：%d",sender_id,user_id,love_level)
-                yield event.plain_result(f"管理员 {sender_id} 设置好感度成功：{user_id} 的好感度被设置为:{love_level}")
+                yield event.plain_result(f"管理员 {sender_id} 设置好感度成功：{user_id} 的好感度被设置为 : {love_level}")
 
     @filter.command("search_love_level")
     async def search_love_level(self, event: AstrMessageEvent, user_id: str = "N",):
