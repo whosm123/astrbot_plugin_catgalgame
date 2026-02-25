@@ -19,6 +19,9 @@ class MyPlugin(Star):
         message_chain = event.get_messages() # 用户所发的消息的消息链 # from astrbot.api.message_components import *
         logger.info("message_chain: %s",message_chain)
         yield event.plain_result(f"Hello, {user_name}, 你发了 {message_str}!") # 发送一条纯文本消息
-
-    async def terminate(self):
+    @filter.command("add")
+    async def adding(self,event: AstrMessageEvent,a,b):
+        result = int(a)+int(b)
+        logger.info("add %d and %d , get %d",a,b,result)
+        yield event.plain_result(f"The answer is {result}")
         """可选择实现异步的插件销毁方法，当插件被卸载/停用时会调用。"""
