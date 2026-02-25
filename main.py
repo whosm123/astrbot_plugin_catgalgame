@@ -1,6 +1,7 @@
 from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult
 from astrbot.api.star import Context, Star, register
 from astrbot.api import logger
+from astrbot.core.message.message_event_result import MessageChain
 from astrbot.core.provider.entities import ProviderRequest
 
 
@@ -268,7 +269,9 @@ class MyPlugin(Star):
         """将玩家的好感度注入到prompt中"""
         sender_id = event.get_sender_id()
         if sender_id not in self.love_levels:
-            yield event.plain_result(f"[system] 玩家 {sender_id} 未加入游戏中，无法与零奈对话。可以发送/join来加入游戏。")
+            message = MessageChain()
+            message.message(f"[system] 玩家 {sender_id} 未加入游戏中，无法与零奈对话。可以发送/join来加入游戏。")
+            await event.send(message)
             event.stop_event()
         lovelevel = self.love_levels[sender_id]
         prompt_add = f"\n【注意】当前和你对话的人的好感度为：{lovelevel}\n"
