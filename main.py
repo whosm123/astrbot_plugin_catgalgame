@@ -27,14 +27,17 @@ class MyPlugin(Star):
 
     @filter.command_group("admin")
     def admin(self):
+        """管理员指令组，仅管理员可使用"""
         pass
 
     @admin.group("love_level")
     def love_level(self):
+        """管理玩家的好感度"""
         pass
 
     @love_level.command("set")
     async def set_love_level(self,event: AstrMessageEvent,user_id:str,love_level : int):
+        """设置玩家的好感度"""
         sender_id = event.get_sender_id()
         if sender_id not in self.admins:
             logger.warn("QQ号 %s 访问管理员接口 love_level.set_love_level 失败：权限不足",sender_id)
@@ -50,7 +53,8 @@ class MyPlugin(Star):
                 logger.info("管理员 %s 设置好感度成功：%s 的好感度被设置为：%d",sender_id,user_id,love_level)
 
     @filter.command("search_love_level")
-    async def set_love_level(self, event: AstrMessageEvent, user_id: str = "N",):
+    async def search_love_level(self, event: AstrMessageEvent, user_id: str = "N",):
+        """查询玩家的好感度"""
         if user_id == "N":
             user_id = event.get_sender_id()
 
@@ -64,6 +68,7 @@ class MyPlugin(Star):
 
     @filter.command("join")
     async def join_game(self,event: AstrMessageEvent):
+        """新玩家加入游戏"""
         user_id = event.get_sender_id()
         if user_id in self.players:
             logger.error("%s 加入失败：已在玩家名单中", user_id)
