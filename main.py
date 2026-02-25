@@ -269,10 +269,12 @@ class MyPlugin(Star):
         """将玩家的好感度注入到prompt中"""
         sender_id = event.get_sender_id()
         if sender_id not in self.love_levels:
+            logger.error(f"玩家 {sender_id} 未加入游戏中，无法与零奈对话。")
             message = MessageChain()
             message.message(f"[system] 玩家 {sender_id} 未加入游戏中，无法与零奈对话。可以发送/join来加入游戏。")
             await event.send(message)
             event.stop_event()
+            return
         lovelevel = self.love_levels[sender_id]
         prompt_add = f"\n【注意】当前和你对话的人的好感度为：{lovelevel}\n"
         req.system_prompt += prompt_add
