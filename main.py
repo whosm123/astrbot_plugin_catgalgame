@@ -20,8 +20,9 @@ class MyPlugin(Star):
         logger.info("message_chain: %s",message_chain)
         yield event.plain_result(f"Hello, {user_name}, 你发了 {message_str}!") # 发送一条纯文本消息
     @filter.command("add")
-    async def adding(self,event: AstrMessageEvent,a,b):
+    async def adding(self,event: AstrMessageEvent,a : int,b : int):
         result = int(a)+int(b)
         logger.info("add %d and %d , get %d",a,b,result)
         yield event.plain_result(f"The answer is {result}")
+
         """可选择实现异步的插件销毁方法，当插件被卸载/停用时会调用。"""
