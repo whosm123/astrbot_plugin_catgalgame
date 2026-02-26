@@ -291,20 +291,20 @@ class MyPlugin(Star):
             message = MessageChain()
             message.at(user_id,user_id)
             message.message("[system] 增加好感度失败：用户不在玩家名单中")
-            yield event.get_result()
+            yield event.send(message)
             return
         elif self.love_levels[user_id] == 5:
             logger.error(f"用户 {user_id} 好感度已满（5），无法再增加")
             message = MessageChain()
             message.at(user_id, user_id)
             message.message(f"[system] 用户好感度已满（5），无法再增加！")
-            yield event.get_result()
+            yield event.send(message)
             return
         self.love_levels[user_id] += 1
         logger.info(f"用户 {user_id} 好感度 + 1，当前好感度为 {self.love_levels[user_id]}")
         message = MessageChain()
         message.at(user_id, user_id)
         message.message(f"[system] 好感度 + 1，当前好感度为 {self.love_levels[user_id]}")
-        yield event.get_result()
+        yield event.send(message)
 
 
