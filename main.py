@@ -305,7 +305,7 @@ class MyPlugin(Star):
         self.love_levels[user_id] += 1
         logger.info(f"用户 {user_id} 好感度 + 1，当前好感度为 {self.love_levels[user_id]}")
         message_chain = MessageChain().at(user_id,user_id).message(f" [system] 好感度 + 1，当前好感度为 {self.love_levels[user_id]}")
-        await self.context.send_message(message_chain)
+        yield self.context.send_message(event.unified_msg_origin, message_chain)
         # message = event.make_result()
         # message.at(user_id, user_id)
         # message.message(f"[system] 好感度 + 1，当前好感度为 {self.love_levels[user_id]}")
