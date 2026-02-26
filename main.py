@@ -278,3 +278,33 @@ class MyPlugin(Star):
         lovelevel = self.love_levels[sender_id]
         prompt_add = f"\n【注意】当前和你对话的人的好感度为：{lovelevel}\n"
         req.system_prompt += prompt_add
+
+    @filter.llm_tool(name="add_love_level")  # 如果 name 不填，将使用函数名
+    async def add_love_level(self, event: AstrMessageEvent, user_id: str) -> MessageEventResult:
+        '''加好感度的tool，提供给AI调用
+
+        Args:
+            user_id(string): 要加好感度的用户QQ号
+        '''
+        if user_id not in self.love_levels:
+            logger.error(f"要加好感度的用户 {user_id} 不在游戏名单中")
+            message = MessageChain()
+            message.at(user_id,user_id)
+            message.message("[system] 增加好感度失败：用户不在玩家名单中")
+            yield event.get_result()
+            return
+        elif self.love_levels[user_id] == 5:
+            logger.error(f"用户 {user_id} 好感度已满（5），无法再增加")
+            message = MessageChain()
+            message.at(user_id, user_id)
+            message.message(f"[system] 用户好感度已满（5），无法再增加！")
+            yield event.get_result()
+            return
+        self.love_levels[user_id] += 1
+        logger.info(f"用户 {user_id} 好感度 + 1，当前好感度为 {self.love_levels[user_id]}")
+        message = MessageChain()
+        message.at(user_id, user_id)
+        message.message(f"[system] 好感度 + 1，当前好感度为 {self.love_levels[user_id]}")
+        yield event.get_result()
+
+
